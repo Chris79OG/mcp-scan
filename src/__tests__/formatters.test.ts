@@ -257,4 +257,68 @@ describe("toText()", () => {
     expect(text).toContain("Scan errors:");
     expect(text).toContain("/tmp/bad.ts");
   });
+
+  it("falls back to message when snippet is absent", () => {
+    const resultNoSnippet: ScanResult = {
+      ...MOCK_RESULT,
+      findings: [
+        {
+          ruleId: "MCP-006",
+          message: "MCP-006: SSRF via unsanitized resource URI: details here",
+          severity: "error",
+          filePath: "/tmp/test-project/src/fetch.ts",
+          line: 10,
+          // no snippet
+        },
+      ],
+      summary: { errors: 1, warnings: 0, notes: 0 },
+    };
+    const text = toText(resultNoSnippet, false);
+    expect(text).toContain("MCP-006: SSRF via unsanitized resource URI");
+  });
+
+  it("shows [NOTE] label for note severity", () => {
+    const resultNote: ScanResult = {
+      ...MOCK_RESULT,
+      findings: [
+        {
+          ruleId: "MCP-007",
+          message: "MCP-007: Community reimplementation divergence marker",
+          severity: "note",
+          filePath: "/tmp/test-project/package.json",
+          snippet: "@modelcontextprotocol/sdk-unofficial",
+        },
+      ],
+      summary: { errors: 0, warnings: 0, notes: 1 },
+    };
+    const text = toText(resultNote, false);
+    expect(text).toContain("[NOTE]");
+    expect(text).toContain("MCP-007");
+  });
+});
+
+describe("toSarif() — column fallback", () => {
+  it("defaults startColumn to 1 when column is undefined", () => {
+    const resultNoColumn: ScanResult = {
+      target: "/tmp/test",
+      startedAt: "2026-03-29T10:00:00.000Z",
+      finishedAt: "2026-03-29T10:00:01.000Z",
+      filesScanned: 1,
+      errors: [],
+      summary: { errors: 1, warnings: 0, notes: 0 },
+      findings: [
+        {
+          ruleId: "MCP-001",
+          message: "MCP-001: prompt injection",
+          severity: "error",
+          filePath: "/tmp/test/server.ts",
+          line: 5,
+          // column intentionally omitted
+        },
+      ],
+    };
+    const sarif = toSarif(resultNoColumn);
+    const region = sarif.runs[0].results[0].locations[0].physicalLocation.region;
+    expect(region?.startColumn).toBe(1);
+  });
 });
