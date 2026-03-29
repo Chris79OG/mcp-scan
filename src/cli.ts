@@ -3,6 +3,9 @@ import { Command } from "commander";
 import * as path from "path";
 import * as fs from "fs";
 import { OutputFormat } from "./types";
+import { scan } from "./scanner";
+import { toSarif } from "./formatters/sarif";
+import { toText } from "./formatters/text";
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const pkg = require("../package.json") as { version: string; description: string };
@@ -39,7 +42,7 @@ program
     "Output format: sarif | json | text",
     "sarif",
   )
-  .action((opts: { input: string; output: string }) => {
+  .action(async (opts: { input: string; output: string }) => {
     const outputFormat = opts.output as OutputFormat;
     const validFormats: OutputFormat[] = ["sarif", "json", "text"];
 
@@ -63,11 +66,29 @@ program
       }
     }
 
-    // Placeholder: scanning engine will be wired in SYNA-33
-    console.error(
-      `[mcp-scan] Scanning ${input} (output: ${outputFormat}) — scanner engine not yet implemented`,
-    );
-    process.exitCode = 0;
+    try {
+      const result = await scan({ input });
+
+      switch (outputFormat) {
+        case "sarif":
+          process.stdout.write(JSON.stringify(toSarif(result), null, 2) + "\n");
+          break;
+        case "json":
+          process.stdout.write(JSON.stringify(result, null, 2) + "\n");
+          break;
+        case "text":
+          process.stdout.write(toText(result) + "\n");
+          break;
+      }
+
+      // Exit with non-zero if any errors found
+      if (result.summary.errors > 0) {
+        process.exitCode = 1;
+      }
+    } catch (err) {
+      console.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
+      process.exitCode = 1;
+    }
   });
 
 program.parse(process.argv);
