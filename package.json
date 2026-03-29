@@ -1,5 +1,5 @@
 {
-  "name": "@syntrophy/mcp-scan",
+  "name": "mcp-scan",
   "version": "0.1.0",
   "description": "MCP server security scanner — detects vulnerability patterns and outputs SARIF reports",
   "bin": {

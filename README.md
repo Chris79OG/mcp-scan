@@ -1,52 +1,78 @@
-# @syntrophy/mcp-scan
+# mcp-scan
 
-Security scanner for MCP (Model Context Protocol) server implementations. Detects vulnerability patterns and outputs SARIF reports compatible with GitHub Code Scanning.
+Security scanner for MCP (Model Context Protocol) servers.
+
+mcp-scan audits MCP server implementations for vulnerabilities, misconfigurations,
+and compliance issues. Built for the engineers building the agent economy.
 
 [![CI](https://github.com/syntrophy/mcp-scan/actions/workflows/ci.yml/badge.svg)](https://github.com/syntrophy/mcp-scan/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/@syntrophy/mcp-scan)](https://www.npmjs.com/package/@syntrophy/mcp-scan)
+[![npm](https://img.shields.io/npm/v/mcp-scan)](https://www.npmjs.com/package/mcp-scan)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
-## Overview
+## Quick Start
 
-`mcp-scan` scans MCP server source code for known vulnerability patterns — prompt injection, SSRF, unrestricted filesystem access, insecure transports, and more. It produces SARIF 2.1.0 output that integrates directly with GitHub's Code Scanning dashboard.
+```bash
+npx mcp-scan scan ./your-mcp-server
+```
 
-Based on 7 divergence patterns (A–G) from the MCP Contract Lab and known CVEs tracked by Syntrophy Radar.
+## What it detects
+
+- Tool poisoning vulnerabilities
+- Prompt injection via tool descriptions
+- Insecure transport configurations
+- Capability escalation paths
+- Compliance gaps against the MCP spec
+
+## Why this exists
+
+MCP adoption is growing faster than security practices can keep up.
+Existing SAST tools don't know the MCP spec — they miss the protocol-specific
+attack surfaces. mcp-scan does.
+
+[Full documentation](docs/) | [Rule library](docs/rules/) | [Contributing](CONTRIBUTING.md)
+
+---
 
 ## Installation
 
 ```bash
 # Run without installing (recommended for CI)
-npx @syntrophy/mcp-scan --input ./my-mcp-server
+npx mcp-scan scan ./your-mcp-server
 
 # Install globally
-npm install -g @syntrophy/mcp-scan
+npm install -g mcp-scan
 ```
 
 ## Usage
 
 ```bash
-# Scan a local MCP server directory, output SARIF (default)
-mcp-scan --input ./my-mcp-server
+# Scan a local MCP server directory (human-readable output)
+mcp-scan scan ./my-mcp-server --output text
 
-# Output human-readable text
-mcp-scan --input ./my-mcp-server --output text
+# Scan a live MCP server endpoint
+mcp-scan scan http://localhost:3000
+
+# Output SARIF for GitHub Code Scanning
+mcp-scan scan ./my-mcp-server --output sarif > results.sarif.json
 
 # Output raw JSON
-mcp-scan --input ./my-mcp-server --output json
-
-# Write SARIF to a file for GitHub Code Scanning
-mcp-scan --input ./my-mcp-server --output sarif > results.sarif.json
+mcp-scan scan ./my-mcp-server --output json
 
 # Show help
 mcp-scan --help
 ```
 
-### Flags
+### Options
 
-| Flag | Description | Default |
-|------|-------------|---------|
-| `--input <path>` | Path to MCP server directory to scan | *(required)* |
+| Option | Description | Default |
+|--------|-------------|---------|
+| `<target>` | Path to MCP server directory or HTTP(S) URL | *(required)* |
 | `--output <format>` | Output format: `sarif`, `json`, or `text` | `sarif` |
+| `--auth-token <token>` | Bearer token for live endpoint scans | |
+| `--rules <ids>` | Comma-separated rule IDs to apply | all rules |
+| `--timeout <ms>` | Request timeout for live scans | `10000` |
+| `-q, --quiet` | Suppress progress output | |
+| `--verbose` | Print detailed step-by-step progress | |
 | `--version` | Print version number | |
 | `--help` | Show usage | |
 
@@ -143,7 +169,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run mcp-scan
-        run: npx @syntrophy/mcp-scan --input . --output sarif > mcp-scan-results.sarif.json
+        run: npx mcp-scan scan . --output sarif > mcp-scan-results.sarif.json
         continue-on-error: true
       - name: Upload SARIF to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v3
@@ -152,6 +178,8 @@ jobs:
 ```
 
 ## Detection Rules
+
+### Static rules (file scanning)
 
 | Rule ID | Name | Severity | Pattern |
 |---------|------|----------|---------|
@@ -165,6 +193,29 @@ jobs:
 | MCP-008 | Insecure SSE transport — missing auth on `/sse` | warning | CVE |
 | MCP-009 | Missing tool output sanitization | warning | CVE |
 | MCP-010 | Unrestricted filesystem access | error | CVE |
+| MCP-011 | Hardcoded credentials or secrets | error | CVE |
+| MCP-012 | Insecure code evaluation (eval/Function constructor) | error | CVE |
+| MCP-013 | Cleartext HTTP endpoint in tool or resource definition | warning | CVE |
+| MCP-014 | Sensitive data written to logs | warning | CVE |
+| MCP-015 | Path traversal via unsanitized user input | warning | CVE |
+
+### Live rules (endpoint scanning)
+
+| Rule ID | Name | Severity |
+|---------|------|----------|
+| MCP-L001 | No TLS (plain HTTP in production) | error |
+| MCP-L002 | Unauthenticated access accepted | error |
+| MCP-L003 | Prompt injection in tool description | error |
+| MCP-L004 | Tool input schema missing `additionalProperties:false` | warning |
+| MCP-L005 | Stack-trace / internal detail leakage in error responses | warning |
+| MCP-L006 | No rate-limiting headers detected | warning |
+| MCP-L007 | SSRF-prone parameter names in tool schemas | warning |
+| MCP-L008 | Excessive scope grants in tool metadata | warning |
+| MCP-L009 | Unauthenticated SSE endpoint | error |
+| MCP-L010 | Unrestricted file-path parameters in tool schemas | error |
+| MCP-L011 | Permissive CORS configuration (`Access-Control-Allow-Origin: *`) | warning |
+| MCP-L012 | Missing security response headers (CSP, X-Frame-Options, HSTS) | warning |
+| MCP-L013 | Authentication token passed as URL query parameter | error |
 
 Rules are based on the 7 divergence patterns (A–G) from the MCP Contract Lab and known CVEs tracked by [Syntrophy Radar](https://syntrophy.io).
 
