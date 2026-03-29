@@ -1,0 +1,25 @@
+version: "3.9"
+
+services:
+  mcp-scan:
+    image: ghcr.io/syntrophy/mcp-scan:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: "3000"
+    volumes:
+      # Mount a local directory to scan via POST /scan {"input":"/scans/my-server"}
+      - scan-inputs:/scans:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  scan-inputs:

@@ -1,0 +1,25 @@
+version: "3.9"
+
+# Staging overrides — used by the CI deploy-staging job on the staging host.
+# Run with: docker compose -f docker-compose.staging.yml up -d
+
+services:
+  mcp-scan:
+    image: ghcr.io/syntrophy/mcp-scan:latest
+    env_file:
+      - /opt/mcp-scan/staging.env
+    ports:
+      - "3000:3000"
+    volumes:
+      - /opt/mcp-scan/scans:/scans:ro
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "1.0"
