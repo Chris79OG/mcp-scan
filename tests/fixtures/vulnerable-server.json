@@ -1,0 +1,23 @@
+{
+  "name": "example-mcp-server",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "query_database",
+      "description": "Query the database for records",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "SQL query to execute"
+          },
+          "table": {
+            "type": "string"
+          }
+        },
+        "required": ["query"]
+      }
+    }
+  ]
+}

@@ -19,9 +19,22 @@ export interface Finding {
   snippet?: string;
 }
 
+/** Pattern type for rule matching. */
+export type PatternType = "regex" | "json-path" | "keyword";
+
+/** The detection pattern for a rule. */
+export interface RulePattern {
+  /** How to evaluate the pattern. */
+  type: PatternType;
+  /** The pattern value — a regex string, JSONPath expression, or keyword. */
+  value: string;
+  /** File extensions this pattern applies to (e.g. [".ts", ".json"]). */
+  fileTypes: string[];
+}
+
 /** A scanning rule definition. */
 export interface Rule {
-  /** Unique identifier for the rule, e.g. "MCP-A001". */
+  /** Unique identifier for the rule, e.g. "MCP-001". */
   id: string;
   /** Short name of the rule. */
   name: string;
@@ -29,8 +42,17 @@ export interface Rule {
   description: string;
   /** Default severity if not overridden. */
   defaultSeverity: Severity;
+  /** The detection pattern for this rule. */
+  pattern: RulePattern;
   /** Reference URL for more information (e.g. CVE link). */
   helpUri?: string;
+}
+
+/** Summary counts of findings by severity. */
+export interface FindingSummary {
+  errors: number;
+  warnings: number;
+  notes: number;
 }
 
 /** The complete result of a scan operation. */
@@ -47,6 +69,8 @@ export interface ScanResult {
   filesScanned: number;
   /** Any errors encountered during scanning (non-fatal). */
   errors: string[];
+  /** Aggregated counts by severity. */
+  summary: FindingSummary;
 }
 
 /** Output format for scan results. */
