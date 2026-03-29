@@ -1,0 +1,21 @@
+{
+  "name": "safe-mcp-server",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "safe_query",
+      "description": "Safely query data with a fully constrained schema",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search term"
+          }
+        },
+        "required": ["query"],
+        "additionalProperties": false
+      }
+    }
+  ]
+}

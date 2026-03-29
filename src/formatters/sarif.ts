@@ -3,6 +3,9 @@ import * as url from "url";
 import { ScanResult, Finding } from "../types";
 import { RULES } from "../rules";
 
+// Live-scan rules (MCP-L*) are not in the static RULES array; we generate
+// descriptors on-the-fly from findings for those.
+
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const pkg = require("../../package.json") as { version: string };
 
@@ -48,6 +51,7 @@ export interface SarifReportingDescriptor {
     level: "error" | "warning" | "note" | "none";
   };
   helpUri?: string;
+  help?: SarifMessage;
 }
 
 export interface SarifToolDriver {
@@ -95,6 +99,8 @@ function filePathToUri(filePath: string): string {
 
 /**
  * Map a Finding to a SARIF result object.
+ * Includes remediation text in the message when available.
+ * Handles both local file paths and HTTP URLs as artifact locations.
  */
 function findingToSarifResult(finding: Finding): SarifResult {
   const level = SEVERITY_MAP[finding.severity] ?? "warning";
@@ -108,17 +114,28 @@ function findingToSarifResult(finding: Finding): SarifResult {
         }
       : undefined;
 
+  // If the filePath is already a URL, use it as-is; otherwise convert to file://
+  const isUrl =
+    finding.filePath.startsWith("http://") ||
+    finding.filePath.startsWith("https://");
+  const artifactUri = isUrl ? finding.filePath : filePathToUri(finding.filePath);
+
+  // Append remediation summary to the SARIF message when present
+  const messageText = finding.remediation
+    ? `${finding.message}\n\nRemediation: ${finding.remediation.summary}`
+    : finding.message;
+
   return {
     ruleId: finding.ruleId,
     level,
     message: {
-      text: finding.message,
+      text: messageText,
     },
     locations: [
       {
         physicalLocation: {
           artifactLocation: {
-            uri: filePathToUri(finding.filePath),
+            uri: artifactUri,
             uriBaseId: "%SRCROOT%",
           },
           ...(region ? { region } : {}),
@@ -139,22 +156,54 @@ export function toSarif(result: ScanResult): SarifLog {
   const firedRuleIds = new Set(result.findings.map((f) => f.ruleId));
   const relevantRules = RULES.filter((r) => firedRuleIds.has(r.id));
 
-  const ruleDescriptors: SarifReportingDescriptor[] = relevantRules.map((rule) => ({
-    id: rule.id,
-    name: rule.name,
-    shortDescription: { text: rule.name },
-    fullDescription: { text: rule.description },
-    defaultConfiguration: {
-      level: SEVERITY_MAP[rule.defaultSeverity] ?? "warning",
-    },
-    ...(rule.helpUri ? { helpUri: rule.helpUri } : {}),
-  }));
+  // Descriptors for known static rules
+  const ruleDescriptors: SarifReportingDescriptor[] = relevantRules.map((rule) => {
+    const helpText = rule.remediation
+      ? `${rule.remediation.summary}\n\nSteps:\n${rule.remediation.steps.map((s, i) => `${i + 1}. ${s}`).join("\n")}`
+      : undefined;
+    return {
+      id: rule.id,
+      name: rule.name,
+      shortDescription: { text: rule.name },
+      fullDescription: { text: rule.description },
+      defaultConfiguration: {
+        level: SEVERITY_MAP[rule.defaultSeverity] ?? "warning",
+      },
+      ...(rule.helpUri ? { helpUri: rule.helpUri } : {}),
+      ...(helpText ? { help: { text: helpText } } : {}),
+    };
+  });
+
+  // For live rules (MCP-L*) that aren't in the static RULES array, generate
+  // minimal descriptors from the findings themselves.
+  const staticRuleIds = new Set(RULES.map((r) => r.id));
+  const liveRuleIds = [...firedRuleIds].filter((id) => !staticRuleIds.has(id));
+  for (const id of liveRuleIds) {
+    const sample = result.findings.find((f) => f.ruleId === id);
+    if (sample) {
+      ruleDescriptors.push({
+        id,
+        name: id,
+        shortDescription: { text: sample.message.split(":")[0] ?? id },
+        fullDescription: { text: sample.message },
+        defaultConfiguration: {
+          level: SEVERITY_MAP[sample.severity] ?? "warning",
+        },
+      });
+    }
+  }
 
   const sarifResults = result.findings.map(findingToSarifResult);
 
-  const srcRootUri = filePathToUri(
-    path.isAbsolute(result.target) ? path.dirname(result.target) : process.cwd(),
-  );
+  // For live scans the target is a URL, not a file path
+  const isLiveScan = result.scanMode === "live" ||
+    result.target.startsWith("http://") ||
+    result.target.startsWith("https://");
+  const srcRootUri = isLiveScan
+    ? result.target
+    : filePathToUri(
+        path.isAbsolute(result.target) ? path.dirname(result.target) : process.cwd(),
+      );
 
   return {
     $schema:
