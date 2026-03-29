@@ -25,8 +25,8 @@ describe("getRuleById()", () => {
 });
 
 describe("RULES", () => {
-  it("exports exactly 10 rules", () => {
-    expect(RULES).toHaveLength(10);
+  it("exports exactly 15 rules", () => {
+    expect(RULES).toHaveLength(15);
   });
 
   it("all rules have non-empty required fields", () => {

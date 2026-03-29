@@ -641,6 +641,131 @@ async function checkSseAuth(
   return null;
 }
 
+/** MCP-L011: Detect permissive CORS (Access-Control-Allow-Origin: *). */
+async function checkCorsConfig(
+  baseUrl: string,
+  timeoutMs: number,
+): Promise<Finding | null> {
+  try {
+    const { responseHeaders: headers } = await rawGet(baseUrl, { Origin: "https://evil.example.com" }, timeoutMs);
+    const acao = headers["access-control-allow-origin"];
+    if (acao && acao.trim() === "*") {
+      return makeFinding(
+        "MCP-L011",
+        "Permissive CORS policy (wildcard origin)",
+        `The server responds with 'Access-Control-Allow-Origin: *', allowing any web ` +
+          `origin to make cross-site requests. Browser-based clients can exfiltrate ` +
+          `scan results or tool outputs to attacker-controlled origins.`,
+        "warning",
+        baseUrl,
+        {
+          summary: "Restrict CORS to explicitly allowlisted origins.",
+          steps: [
+            "Replace `Access-Control-Allow-Origin: *` with a specific allowlist of trusted origins.",
+            "Return `Vary: Origin` so caches do not serve one origin's response to another.",
+            "Never combine wildcard origin with `Access-Control-Allow-Credentials: true`.",
+            "Maintain the origin allowlist in environment configuration, not hardcoded in source.",
+          ],
+          references: [
+            "https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS",
+            "https://cheatsheetseries.owasp.org/cheatsheets/CORS_Security_Cheat_Sheet.html",
+          ],
+        },
+      );
+    }
+  } catch {
+    // Server unreachable or CORS headers absent — skip
+  }
+  return null;
+}
+
+/** MCP-L012: Detect missing critical security response headers. */
+async function checkSecurityHeaders(
+  baseUrl: string,
+  timeoutMs: number,
+): Promise<Finding[]> {
+  const findings: Finding[] = [];
+  try {
+    const { responseHeaders: headers } = await rawGet(baseUrl, {}, timeoutMs);
+
+    const missing: string[] = [];
+    if (!headers["content-security-policy"]) missing.push("Content-Security-Policy");
+    if (!headers["x-frame-options"] && !headers["content-security-policy"]?.includes("frame-ancestors")) {
+      missing.push("X-Frame-Options");
+    }
+    if (baseUrl.startsWith("https://") && !headers["strict-transport-security"]) {
+      missing.push("Strict-Transport-Security");
+    }
+    if (!headers["x-content-type-options"]) missing.push("X-Content-Type-Options");
+
+    if (missing.length > 0) {
+      findings.push(
+        makeFinding(
+          "MCP-L012",
+          "Missing security response headers",
+          `The server is missing the following security headers: ${missing.join(", ")}. ` +
+            `These headers defend against clickjacking, MIME sniffing, XSS, and MITM downgrade attacks.`,
+          "warning",
+          baseUrl,
+          {
+            summary: "Add standard security headers to all HTTP responses.",
+            steps: [
+              "Add `Content-Security-Policy: default-src 'self'` (tighten per your needs).",
+              "Add `X-Frame-Options: DENY` to prevent clickjacking.",
+              "Add `Strict-Transport-Security: max-age=63072000; includeSubDomains` for HTTPS servers.",
+              "Add `X-Content-Type-Options: nosniff` to prevent MIME confusion attacks.",
+              "Use the `helmet` middleware (Node.js) or equivalent to apply all headers consistently.",
+            ],
+            references: [
+              "https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html",
+              "https://securityheaders.com/",
+            ],
+          },
+        ),
+      );
+    }
+  } catch {
+    // Unreachable — skip
+  }
+  return findings;
+}
+
+/** MCP-L013: Detect authentication tokens passed as URL query parameters. */
+function checkAuthInUrl(url: string): Finding | null {
+  try {
+    const parsed = new URL(url);
+    const sensitiveParams = ["token", "api_key", "apikey", "access_token", "auth", "secret", "key"];
+    const found = sensitiveParams.filter((p) => parsed.searchParams.has(p));
+    if (found.length > 0) {
+      return makeFinding(
+        "MCP-L013",
+        "Authentication token in URL query parameter",
+        `The server URL contains sensitive query parameters (${found.join(", ")}). ` +
+          `Tokens in URLs are logged by proxies, web servers, and browser history, ` +
+          `exposing credentials to unauthorized parties.`,
+        "error",
+        url,
+        {
+          summary: "Move authentication credentials from URL query parameters to request headers.",
+          steps: [
+            "Use the `Authorization: Bearer <token>` header instead of URL query parameters.",
+            "Update all clients to pass credentials in the `Authorization` header.",
+            "Rotate any token that has been passed as a URL parameter — assume it is compromised.",
+            "Configure your web server to redact query parameters from access logs.",
+          ],
+          references: [
+            "https://owasp.org/www-community/vulnerabilities/Information_exposure_through_query_strings_in_url",
+            "https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html",
+          ],
+        },
+      );
+    }
+  } catch {
+    // Invalid URL — skip
+  }
+  return null;
+}
+
 // ---------------------------------------------------------------------------
 // Helper: construct a Finding
 // ---------------------------------------------------------------------------
@@ -853,6 +978,38 @@ export async function scanLive(options: LiveScanOptions): Promise<ScanResult> {
     } catch (e) {
       errors.push(`SSE probe failed: ${e instanceof Error ? e.message : String(e)}`);
     }
+  }
+
+  // -------------------------------------------------------------------------
+  // Step 7b: CORS configuration check
+  // -------------------------------------------------------------------------
+  if (shouldCheck("MCP-L011")) {
+    try {
+      const finding = await checkCorsConfig(url, timeoutMs);
+      if (finding) findings.push(finding);
+    } catch (e) {
+      errors.push(`CORS probe failed: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Step 7c: Security headers check
+  // -------------------------------------------------------------------------
+  if (shouldCheck("MCP-L012")) {
+    try {
+      const headerFindings = await checkSecurityHeaders(url, timeoutMs);
+      findings.push(...headerFindings);
+    } catch (e) {
+      errors.push(`Security headers probe failed: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Step 7d: Auth-in-URL check (synchronous — no network needed)
+  // -------------------------------------------------------------------------
+  if (shouldCheck("MCP-L013")) {
+    const finding = checkAuthInUrl(url);
+    if (finding) findings.push(finding);
   }
 
   // -------------------------------------------------------------------------
