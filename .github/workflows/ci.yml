@@ -11,7 +11,6 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  # â”€â”€ Lint + test + build (matrix) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   build:
     name: Build & Test (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
@@ -36,19 +35,15 @@ jobs:
       - name: Type check
         run: npx tsc --noEmit
 
-        - name: Build
-          run: npm run build
+      - name: Build
+        run: npm run build
 
       - name: Test
         run: npm run test -- --coverage
 
-      - name: Build
-        run: npm run build
-
       - name: Verify CLI works
         run: node dist/cli.js --help
 
-  # â”€â”€ Docker image build (only on main/master push) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   docker:
     name: Build & push Docker image
     runs-on: ubuntu-latest
@@ -95,7 +90,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # â”€â”€ Deploy to staging â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   deploy-staging:
     name: Deploy to staging
     runs-on: ubuntu-latest
@@ -117,15 +111,9 @@ jobs:
           script: |
             set -e
             cd /opt/mcp-scan
-
-            # Pull latest image
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             docker pull ghcr.io/${{ github.repository }}:latest
-
-            # Hot-swap container (rolling restart)
             docker compose -f docker-compose.staging.yml up -d --remove-orphans
-
-            # Wait for health (up to 60 s)
             for i in $(seq 1 12); do
               STATUS=$(curl -sf http://localhost:3000/health | python3 -c "import sys,json; print(json.load(sys.stdin)['status'])" 2>/dev/null || echo "error")
               if [ "$STATUS" = "ok" ]; then
