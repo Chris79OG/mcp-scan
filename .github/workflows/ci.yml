@@ -132,8 +132,8 @@ jobs:
             touch /opt/mcp-scan/staging.env
 
             cd /opt/mcp-scan
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            docker pull ghcr.io/${{ github.repository }}:latest
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u chris79og --password-stdin
+            docker pull ghcr.io/chris79og/mcp-scan:latest
             docker compose -f docker-compose.staging.yml up -d --remove-orphans
             for i in $(seq 1 12); do
               STATUS=$(curl -sf http://localhost:3000/health | python3 -c "import sys,json; print(json.load(sys.stdin)['status'])" 2>/dev/null || echo "error")
