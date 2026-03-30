@@ -1,5 +1,5 @@
 {
-  "name": "mcp-scan",
+  "name": "@syntrophy/mcp-scan",
   "version": "0.1.0",
   "description": "MCP server security scanner — detects vulnerability patterns and outputs SARIF reports",
   "bin": {
@@ -26,6 +26,14 @@
     "model-context-protocol"
   ],
   "author": "Syntrophy Foundry",
+  "homepage": "https://github.com/Chris79OG/mcp-scan#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Chris79OG/mcp-scan.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Chris79OG/mcp-scan/issues"
+  },
   "license": "MIT",
   "dependencies": {
     "commander": "^12.1.0"

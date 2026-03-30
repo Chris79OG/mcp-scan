@@ -5,14 +5,14 @@ Security scanner for MCP (Model Context Protocol) servers.
 mcp-scan audits MCP server implementations for vulnerabilities, misconfigurations,
 and compliance issues. Built for the engineers building the agent economy.
 
-[![CI](https://github.com/syntrophy/mcp-scan/actions/workflows/ci.yml/badge.svg)](https://github.com/syntrophy/mcp-scan/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/mcp-scan)](https://www.npmjs.com/package/mcp-scan)
+[![CI](https://github.com/Chris79OG/mcp-scan/actions/workflows/ci.yml/badge.svg)](https://github.com/Chris79OG/mcp-scan/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/%40syntrophy%2Fmcp-scan)](https://www.npmjs.com/package/@syntrophy/mcp-scan)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
 ## Quick Start
 
 ```bash
-npx mcp-scan scan ./your-mcp-server
+npx @syntrophy/mcp-scan scan ./your-mcp-server
 ```
 
 ## What it detects
@@ -37,10 +37,10 @@ attack surfaces. mcp-scan does.
 
 ```bash
 # Run without installing (recommended for CI)
-npx mcp-scan scan ./your-mcp-server
+npx @syntrophy/mcp-scan scan ./your-mcp-server
 
 # Install globally
-npm install -g mcp-scan
+npm install -g @syntrophy/mcp-scan
 ```
 
 ## Usage
@@ -169,7 +169,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run mcp-scan
-        run: npx mcp-scan scan . --output sarif > mcp-scan-results.sarif.json
+        run: npx @syntrophy/mcp-scan scan . --output sarif > mcp-scan-results.sarif.json
         continue-on-error: true
       - name: Upload SARIF to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v3
