@@ -5,7 +5,7 @@ version: "3.9"
 
 services:
   mcp-scan:
-    image: ghcr.io/syntrophy/mcp-scan:latest
+    image: ghcr.io/chris79og/mcp-scan:latest
     env_file:
       - /opt/mcp-scan/staging.env
     ports:
