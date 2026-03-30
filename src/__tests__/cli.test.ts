@@ -1,5 +1,5 @@
-/**
- * CLI integration tests — spawn the compiled dist/cli.js and verify
+﻿/**
+ * CLI integration tests â€” spawn the compiled dist/cli.js and verify
  * end-to-end behaviour including option parsing.
  *
  * Regression: Commander parent/subcommand option shadowing (SYNA-129).
@@ -28,10 +28,10 @@ function runCli(args: string[]): { stdout: string; stderr: string; status: numbe
   };
 }
 
-describe("CLI — --output option routing (regression: optsWithGlobals)", () => {
+describe("CLI â€” --output option routing (regression: optsWithGlobals)", () => {
   it("scan --output text produces human-readable text, not SARIF JSON", () => {
     const { stdout } = runCli(["scan", FIXTURES, "--output", "text", "--quiet"]);
-    // Text output starts with "mcp-scan —", not a JSON object
+    // Text output starts with "mcp-scan â€”", not a JSON object
     expect(stdout.trimStart()).toMatch(/^.{0,10}mcp-scan/);
     expect(stdout).not.toContain('"$schema"');
     expect(stdout).not.toContain('"version": "2.1.0"');
@@ -86,6 +86,7 @@ describe("CLI — --output option routing (regression: optsWithGlobals)", () => 
 
   it("exits with code 0 when target has no findings", () => {
     // Create a temp clean directory with no MCP server code
+// eslint-disable-next-line @typescript-eslint/no-require-imports
     const tmpDir = path.join(require("os").tmpdir(), "mcp-scan-clean-test");
     fs.mkdirSync(tmpDir, { recursive: true });
     fs.writeFileSync(path.join(tmpDir, "clean.ts"), "// nothing suspicious\nconst x = 1;\n");
