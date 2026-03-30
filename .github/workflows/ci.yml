@@ -1,4 +1,4 @@
-name: CI
+﻿name: CI
 
 on:
   push:
@@ -11,7 +11,7 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  # ── Lint + test + build (matrix) ────────────────────────────────────────────
+  # â”€â”€ Lint + test + build (matrix) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   build:
     name: Build & Test (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
@@ -45,7 +45,7 @@ jobs:
       - name: Verify CLI works
         run: node dist/cli.js --help
 
-  # ── Docker image build (only on main/master push) ───────────────────────────────────
+  # â”€â”€ Docker image build (only on main/master push) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   docker:
     name: Build & push Docker image
     runs-on: ubuntu-latest
@@ -92,7 +92,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # ── Deploy to staging ────────────────────────────────────────────────────────
+  # â”€â”€ Deploy to staging â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   deploy-staging:
     name: Deploy to staging
     runs-on: ubuntu-latest
@@ -100,7 +100,7 @@ jobs:
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     environment:
       name: staging
-      url: http://${{ secrets.STAGING_HOST }}:3000/health
+      url: http://staging:3000/health
 
     steps:
       - uses: actions/checkout@v4
