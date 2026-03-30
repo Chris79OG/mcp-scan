@@ -131,8 +131,8 @@ jobs:
             # Ensure staging.env exists
             touch /opt/mcp-scan/staging.env
 
-            # Ensure docker compose plugin is available
-            apt-get install -y docker-compose-plugin 2>/dev/null || true
+            # Ensure docker compose plugin is available (Ubuntu uses docker-compose-v2)
+            apt-get install -y docker-compose-v2 2>/dev/null || true
 
             cd /opt/mcp-scan
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u chris79og --password-stdin
