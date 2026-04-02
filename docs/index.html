@@ -1036,8 +1036,7 @@
       }, 2000);
     }
 
-    // Beta signup — Loops newsletter form
-    // To go live: replace LOOPS_FORM_ID with the form ID from app.loops.so
+    // Beta signup — Loops newsletter form (configured)
     async function handleBetaSignup(e) {
       e.preventDefault();
       const form  = e.target;
@@ -1048,7 +1047,7 @@
       btn.textContent = 'JOINING\u2026';
 
       try {
-        const res = await fetch('https://app.loops.so/api/newsletter-form/LOOPS_FORM_ID', {
+        const res = await fetch('https://app.loops.so/api/newsletter-form/cmni0e3he00180i0ihqkhn2gu', {
           method:  'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body:    'email=' + encodeURIComponent(email)
