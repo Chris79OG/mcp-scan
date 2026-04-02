@@ -1036,14 +1036,33 @@
       }, 2000);
     }
 
-    // Beta signup (replace with real list backend)
-    function handleBetaSignup(e) {
+    // Beta signup — Loops newsletter form
+    // To go live: replace LOOPS_FORM_ID with the form ID from app.loops.so
+    async function handleBetaSignup(e) {
       e.preventDefault();
-      const email = e.target.querySelector('input[type="email"]').value;
-      // TODO: Connect to mailing list backend (Loops, Mailchimp, etc.) — CIO to provide endpoint
-      console.log('Beta signup:', email);
-      const form = e.target;
-      form.innerHTML = '<p style="color:var(--signal-green);font-family:var(--font-mono);font-size:13px;">You\'re on the list. We\'ll be in touch.</p>';
+      const form  = e.target;
+      const email = form.querySelector('input[type="email"]').value;
+      const btn   = form.querySelector('button[type="submit"]');
+
+      btn.disabled    = true;
+      btn.textContent = 'JOINING\u2026';
+
+      try {
+        const res = await fetch('https://app.loops.so/api/newsletter-form/LOOPS_FORM_ID', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body:    'email=' + encodeURIComponent(email)
+        });
+        if (!res.ok) throw new Error('signup failed');
+        form.innerHTML = '<p style="color:var(--signal-green);font-family:var(--font-mono);font-size:13px;">You\'re on the list. We\'ll be in touch.</p>';
+      } catch (_) {
+        btn.disabled    = false;
+        btn.textContent = 'JOIN BETA LIST \u2192';
+        const err = document.createElement('p');
+        err.style.cssText = 'color:#ef4444;font-family:var(--font-mono);font-size:12px;margin-top:8px;';
+        err.textContent   = 'Something went wrong \u2014 please try again.';
+        form.appendChild(err);
+      }
     }
   </script>
 
