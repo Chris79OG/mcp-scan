@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- SEO -->
+  <title>mcp-scan — Security Scanner for MCP Servers</title>
+  <meta name="description" content="CLI tool that detects vulnerabilities, misconfigurations, and compliance issues in MCP server implementations. No account required. Runs in 30 seconds.">
+  <meta property="og:title" content="mcp-scan — Security Scanner for MCP Servers">
+  <meta property="og:description" content="Purpose-built scanner for Model Context Protocol servers. Tool poisoning, prompt injection, capability escalation. npx @syntrophy/mcp-scan scan &lt;target&gt;.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="mcp-scan — Security Scanner for MCP Servers">
+  <meta name="twitter:description" content="Purpose-built scanner for MCP servers. Detects tool poisoning, prompt injection, capability escalation. No account required.">
+
+  <!-- Fonts: Geist Mono (Vercel) + Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ============================================================
+       BRAND TOKENS — Syntrophy Foundry
+       Source: brand/tokens/syntrophy-tokens.css
+       ============================================================ */
+    :root {
+      --cyan:        #00E5FF;
+      --cyan-dark:   #00B8D4;
+      --cyan-dim:    #0091EA;
+      --void:        #060810;
+      --shadow:      #0A0F1A;
+      --charcoal:    #0F1520;
+      --surface:     #141B28;
+      --muted:       #1E2A3D;
+      --ghost:       #2A3A52;
+      --steel:       #4A6080;
+      --silver:      #8AA0BC;
+      --white:       #F0F4FF;
+      --signal-red:  #FF1744;
+      --signal-amber:#FF9100;
+      --signal-green:#00E676;
+      --font-mono:   'Geist Mono', 'JetBrains Mono', monospace;
+      --font-sans:   'Inter', system-ui, sans-serif;
+      --radius:      4px;
+    }
+
+    /* ============================================================
+       RESET
+       ============================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--void);
+      color: var(--silver);
+      font-family: var(--font-sans);
+      font-size: 16px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--cyan); text-decoration: none; }
+    a:hover { color: var(--white); }
+
+    /* ============================================================
+       LAYOUT
+       ============================================================ */
+    .container {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 32px;
+    }
+
+    /* ============================================================
+       SECTION 1: NAVIGATION
+       ============================================================ */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(6, 8, 16, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--muted);
+      padding: 0;
+    }
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+    }
+    .nav-logo {
+      font-family: var(--font-mono);
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--cyan);
+      letter-spacing: 0.05em;
+    }
+    .nav-logo:hover { color: var(--white); }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      list-style: none;
+    }
+    .nav-links a {
+      font-size: 14px;
+      color: var(--steel);
+      font-family: var(--font-mono);
+    }
+    .nav-links a:hover { color: var(--white); }
+    .nav-cta {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: var(--void) !important;
+      background: var(--cyan);
+      padding: 8px 16px;
+      border-radius: var(--radius);
+      white-space: nowrap;
+      transition: background 150ms ease-out;
+    }
+    .nav-cta:hover {
+      background: var(--white);
+      color: var(--void) !important;
+    }
+
+    /* ============================================================
+       SECTION 2: HERO
+       ============================================================ */
+    .hero {
+      padding: 96px 0 80px;
+      border-bottom: 1px solid var(--muted);
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
+      align-items: center;
+    }
+    .hero-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      color: var(--cyan);
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .hero h1 {
+      font-family: var(--font-sans);
+      font-size: clamp(36px, 4vw, 52px);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      color: var(--white);
+      margin-bottom: 24px;
+    }
+    .hero-sub {
+      font-size: 18px;
+      color: var(--silver);
+      line-height: 1.6;
+      max-width: 500px;
+      margin-bottom: 36px;
+    }
+    .cmd-block {
+      background: var(--shadow);
+      border: 1px solid var(--muted);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      cursor: pointer;
+      transition: border-color 150ms ease-out;
+    }
+    .cmd-block:hover { border-color: var(--cyan); }
+    .cmd-text {
+      font-family: var(--font-mono);
+      font-size: 13.5px;
+      color: var(--cyan);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .cmd-text .prompt { color: var(--steel); }
+    .copy-btn {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--steel);
+      letter-spacing: 0.05em;
+      background: none;
+      border: 1px solid var(--ghost);
+      padding: 3px 8px;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: all 100ms;
+      margin-left: 12px;
+      flex-shrink: 0;
+    }
+    .copy-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+    .copy-btn.copied { border-color: var(--signal-green); color: var(--signal-green); }
+    .hero-secondary {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--steel);
+    }
+    .hero-secondary a {
+      color: var(--cyan);
+      border-bottom: 1px solid rgba(0, 229, 255, 0.3);
+    }
+    .hero-secondary a:hover { border-color: var(--cyan); }
+
+    /* Terminal output card */
+    .terminal-card {
+      background: var(--shadow);
+      border: 1px solid var(--muted);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+    }
+    .terminal-titlebar {
+      background: var(--charcoal);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border-bottom: 1px solid var(--muted);
+    }
+    .tbar-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .tbar-dot.r { background: #FF5F57; }
+    .tbar-dot.y { background: #FFBD2E; }
+    .tbar-dot.g { background: #28CA41; }
+    .tbar-label {
+      margin-left: auto;
+      margin-right: auto;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--steel);
+    }
+    .terminal-body {
+      padding: 20px 24px;
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      line-height: 1.7;
+    }
+    .t-prompt { color: var(--steel); }
+    .t-cmd { color: var(--white); }
+    .t-blank { height: 8px; }
+    .t-version { color: var(--silver); }
+    .t-scanning { color: var(--silver); }
+    .t-blank-sm { height: 4px; }
+    .t-finding { margin-bottom: 10px; }
+    .t-crit { color: var(--signal-red); font-weight: 700; }
+    .t-high { color: var(--signal-amber); font-weight: 700; }
+    .t-info { color: var(--steel); }
+    .t-file { color: var(--cyan); padding-left: 20px; }
+    .t-desc { color: var(--silver); padding-left: 20px; }
+    .t-fix  { color: var(--signal-green); padding-left: 20px; }
+    .t-rule { color: var(--cyan-dim); padding-left: 20px; }
+    .t-summary { color: var(--silver); margin-top: 8px; border-top: 1px solid var(--muted); padding-top: 8px; }
+    .t-summary-warn { color: var(--signal-amber); }
+
+    /* ============================================================
+       SECTION 3: TRUST BAR
+       ============================================================ */
+    .trust-bar {
+      padding: 24px 0;
+      border-bottom: 1px solid var(--muted);
+    }
+    .trust-items {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      flex-wrap: wrap;
+    }
+    .trust-item {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--steel);
+      padding: 0 32px;
+      white-space: nowrap;
+    }
+    .trust-sep {
+      width: 1px;
+      height: 16px;
+      background: var(--ghost);
+    }
+
+    /* ============================================================
+       SECTION 4: FEATURE BLOCKS
+       ============================================================ */
+    .features {
+      padding: 96px 0;
+      border-bottom: 1px solid var(--muted);
+    }
+    .feature-block {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
+      align-items: center;
+      margin-bottom: 96px;
+    }
+    .feature-block:last-child { margin-bottom: 0; }
+    .feature-block.reverse { direction: rtl; }
+    .feature-block.reverse > * { direction: ltr; }
+    .feature-tag {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--cyan);
+      text-transform: uppercase;
+      background: rgba(0, 229, 255, 0.08);
+      border: 1px solid rgba(0, 229, 255, 0.2);
+      padding: 3px 8px;
+      border-radius: 2px;
+      display: inline-block;
+      margin-bottom: 16px;
+    }
+    .feature-title {
+      font-family: var(--font-sans);
+      font-size: 26px;
+      font-weight: 700;
+      line-height: 1.2;
+      color: var(--white);
+      margin-bottom: 16px;
+      letter-spacing: -0.01em;
+    }
+    .feature-body {
+      font-size: 15px;
+      color: var(--silver);
+      line-height: 1.65;
+      margin-bottom: 12px;
+    }
+    .feature-note {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--steel);
+      line-height: 1.6;
+      border-left: 2px solid var(--cyan);
+      padding-left: 12px;
+      margin-top: 12px;
+    }
+
+    /* Comparison card */
+    .compare-card {
+      background: var(--shadow);
+      border: 1px solid var(--muted);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .compare-header {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border-bottom: 1px solid var(--muted);
+    }
+    .compare-col-head {
+      padding: 10px 16px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: var(--steel);
+      text-transform: uppercase;
+    }
+    .compare-col-head.active { color: var(--cyan); }
+    .compare-col-head:first-child { border-right: 1px solid var(--muted); }
+    .compare-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+    .compare-col {
+      padding: 16px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.8;
+    }
+    .compare-col:first-child {
+      border-right: 1px solid var(--muted);
+      color: var(--ghost);
+    }
+    .compare-col.active { color: var(--silver); }
+    .compare-col .finding-crit { color: var(--signal-red); }
+    .compare-col .finding-high { color: var(--signal-amber); }
+    .compare-col .no-find { color: var(--ghost); }
+
+    /* CI code block */
+    .code-block {
+      background: var(--shadow);
+      border: 1px solid var(--muted);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .code-block-header {
+      padding: 8px 16px;
+      border-bottom: 1px solid var(--muted);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--steel);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .code-block pre {
+      padding: 16px;
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      line-height: 1.7;
+      overflow-x: auto;
+    }
+    .c-comment { color: var(--steel); }
+    .c-key     { color: var(--silver); }
+    .c-val     { color: var(--cyan); }
+    .c-str     { color: var(--signal-green); }
+
+    /* Finding block */
+    .finding-block {
+      background: var(--shadow);
+      border: 1px solid var(--muted);
+      border-left: 3px solid var(--signal-red);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.8;
+    }
+    .finding-block .f-title  { color: var(--signal-red); font-weight: 700; margin-bottom: 8px; }
+    .finding-block .f-label  { color: var(--steel); min-width: 72px; display: inline-block; }
+    .finding-block .f-ruleid { color: var(--cyan); }
+    .finding-block .f-path   { color: var(--cyan-dim); }
+    .finding-block .f-detail { color: var(--silver); }
+    .finding-block .f-fix    { color: var(--signal-green); }
+    .finding-block .f-line   { display: block; margin-bottom: 2px; }
+
+    /* Demo gif block */
+    .gif-placeholder {
+      background: var(--shadow);
+      border: 1px solid var(--muted);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .gif-placeholder img {
+      width: 100%;
+      display: block;
+    }
+    .gif-caption {
+      padding: 8px 12px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--steel);
+      border-top: 1px solid var(--muted);
+    }
+
+    /* ============================================================
+       SECTION 5: SOCIAL PROOF / BETA
+       ============================================================ */
+    .social-proof {
+      padding: 96px 0;
+      border-bottom: 1px solid var(--muted);
+      text-align: center;
+    }
+    .section-tag {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--cyan);
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    .section-title {
+      font-family: var(--font-sans);
+      font-size: clamp(24px, 3vw, 36px);
+      font-weight: 700;
+      color: var(--white);
+      letter-spacing: -0.01em;
+      margin-bottom: 16px;
+    }
+    .section-sub {
+      font-size: 16px;
+      color: var(--silver);
+      max-width: 560px;
+      margin: 0 auto 48px;
+    }
+    .quote-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      margin-bottom: 48px;
+    }
+    .quote-card {
+      background: var(--shadow);
+      border: 1px solid var(--muted);
+      border-radius: var(--radius);
+      padding: 24px;
+      text-align: left;
+    }
+    .quote-text {
+      font-size: 14px;
+      color: var(--silver);
+      line-height: 1.65;
+      margin-bottom: 16px;
+      font-style: italic;
+    }
+    .quote-author { font-family: var(--font-mono); font-size: 11px; color: var(--steel); }
+    .quote-placeholder {
+      color: var(--ghost);
+      font-style: italic;
+      font-size: 13px;
+    }
+
+    /* ============================================================
+       SECTION 6: PRICING / BETA SIGNUP
+       ============================================================ */
+    .pricing {
+      padding: 96px 0;
+      border-bottom: 1px solid var(--muted);
+      text-align: center;
+    }
+    .pricing-beta {
+      background: var(--shadow);
+      border: 1px solid var(--muted);
+      border-top: 2px solid var(--cyan);
+      border-radius: var(--radius);
+      padding: 48px;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+    .pricing-beta h3 {
+      font-family: var(--font-sans);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 12px;
+    }
+    .pricing-beta p {
+      color: var(--silver);
+      font-size: 15px;
+      margin-bottom: 28px;
+      line-height: 1.6;
+    }
+    .email-form {
+      display: flex;
+      gap: 12px;
+      max-width: 420px;
+      margin: 0 auto;
+    }
+    .email-input {
+      flex: 1;
+      background: var(--void);
+      border: 1px solid var(--muted);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--white);
+      outline: none;
+      transition: border-color 150ms;
+    }
+    .email-input::placeholder { color: var(--steel); }
+    .email-input:focus { border-color: var(--cyan); }
+    .email-submit {
+      background: var(--cyan);
+      color: var(--void);
+      border: none;
+      border-radius: var(--radius);
+      padding: 10px 20px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 150ms;
+    }
+    .email-submit:hover { background: var(--white); }
+    .pricing-note {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--steel);
+      margin-top: 16px;
+    }
+
+    /* ============================================================
+       SECTION 7: FAQ
+       ============================================================ */
+    .faq {
+      padding: 96px 0;
+      border-bottom: 1px solid var(--muted);
+    }
+    .faq-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      margin-top: 48px;
+    }
+    .faq-item {}
+    .faq-q {
+      font-family: var(--font-sans);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--white);
+      margin-bottom: 8px;
+    }
+    .faq-a {
+      font-size: 14px;
+      color: var(--silver);
+      line-height: 1.65;
+    }
+    .faq-a code {
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      color: var(--cyan);
+      background: var(--shadow);
+      padding: 1px 5px;
+      border-radius: 2px;
+      border: 1px solid var(--muted);
+    }
+
+    /* ============================================================
+       SECTION 8: FOOTER
+       ============================================================ */
+    footer {
+      padding: 48px 0 32px;
+    }
+    .footer-main {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 32px;
+      padding-bottom: 32px;
+      border-bottom: 1px solid var(--muted);
+    }
+    .footer-brand {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--cyan);
+    }
+    .footer-byline {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--steel);
+      margin-top: 4px;
+    }
+    .footer-links {
+      display: flex;
+      gap: 32px;
+    }
+    .footer-links a {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--steel);
+    }
+    .footer-links a:hover { color: var(--cyan); }
+    .footer-social {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--steel);
+    }
+    .footer-social a:hover { color: var(--cyan); }
+    .footer-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .footer-legal {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--ghost);
+    }
+    .footer-legal a { color: var(--ghost); }
+    .footer-legal a:hover { color: var(--steel); }
+
+    /* ============================================================
+       RESPONSIVE
+       ============================================================ */
+    @media (max-width: 900px) {
+      .hero-grid      { grid-template-columns: 1fr; }
+      .hero h1        { font-size: 32px; }
+      .feature-block  { grid-template-columns: 1fr; gap: 32px; }
+      .feature-block.reverse { direction: ltr; }
+      .quote-cards    { grid-template-columns: 1fr; }
+      .faq-grid       { grid-template-columns: 1fr; gap: 32px; }
+      .footer-main    { flex-direction: column; gap: 24px; }
+      .nav-links li.hide-mobile { display: none; }
+      .email-form     { flex-direction: column; }
+    }
+    @media (max-width: 600px) {
+      .container      { padding: 0 20px; }
+      .hero           { padding: 64px 0 48px; }
+      .trust-items    { flex-direction: column; gap: 12px; }
+      .trust-sep      { display: none; }
+      .terminal-body  { font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================================
+       NAV
+       ============================================================ -->
+  <nav>
+    <div class="container">
+      <div class="nav-inner">
+        <a class="nav-logo" href="/">mcp-scan</a>
+        <ul class="nav-links">
+          <li class="hide-mobile"><a href="https://github.com/syntrophy/mcp-scan" target="_blank" rel="noopener">GitHub</a></li>
+          <li class="hide-mobile"><a href="#faq">FAQ</a></li>
+          <li>
+            <a class="nav-cta"
+               href="https://www.npmjs.com/package/@syntrophy/mcp-scan"
+               target="_blank"
+               rel="noopener"
+               onclick="copyToClipboard('npx @syntrophy/mcp-scan scan <target>'); return false;">
+              npx @syntrophy/mcp-scan scan
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ============================================================
+       HERO
+       ============================================================ -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-grid">
+        <div class="hero-text">
+          <p class="hero-eyebrow">Security infrastructure for the agent economy</p>
+          <h1>Your MCP servers have security holes.<br>mcp-scan finds them.</h1>
+          <p class="hero-sub">A CLI scanner purpose-built for Model Context Protocol servers. Detects vulnerabilities, misconfigurations, and compliance gaps in seconds.</p>
+
+          <div class="cmd-block" onclick="copyCmd(this, 'npx @syntrophy/mcp-scan scan ./your-mcp-server')" title="Click to copy">
+            <span class="cmd-text"><span class="prompt">$</span> npx @syntrophy/mcp-scan scan ./your-mcp-server</span>
+            <button class="copy-btn" tabindex="-1">COPY</button>
+          </div>
+
+          <p class="hero-secondary">
+            No account required. MIT licensed.
+            <a href="https://github.com/syntrophy/mcp-scan" target="_blank" rel="noopener">Read the docs &rarr;</a>
+          </p>
+        </div>
+
+        <div class="hero-visual">
+          <div class="terminal-card">
+            <div class="terminal-titlebar">
+              <div class="tbar-dot r"></div>
+              <div class="tbar-dot y"></div>
+              <div class="tbar-dot g"></div>
+              <span class="tbar-label">bash &mdash; mcp-scan</span>
+            </div>
+            <div class="terminal-body">
+              <div class="t-prompt">$ <span class="t-cmd">npx @syntrophy/mcp-scan scan ./server</span></div>
+              <div class="t-blank"></div>
+              <div class="t-version">@syntrophy/mcp-scan v0.1.0</div>
+              <div class="t-scanning">Scanning: ./server (14 rules)</div>
+              <div class="t-blank"></div>
+              <div class="t-finding">
+                <div><span class="t-crit">[CRITICAL]</span> TOOL-POISONING-001</div>
+                <div class="t-file">src/tools/calculator.ts:47</div>
+                <div class="t-desc">Tool description accepts user input without sanitization.</div>
+                <div class="t-fix">Fix: sanitize at registration time</div>
+              </div>
+              <div class="t-finding">
+                <div><span class="t-high">[HIGH]</span>&nbsp;&nbsp;&nbsp;&nbsp;TRANSPORT-AUTH-002</div>
+                <div class="t-file">src/transport/sse.ts:23</div>
+                <div class="t-desc">SSE endpoint missing auth on capability negotiation.</div>
+                <div class="t-fix">Fix: require Bearer token on /capabilities</div>
+              </div>
+              <div class="t-finding">
+                <div><span class="t-info">[INFO]</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SPEC-DRIFT-001</div>
+                <div class="t-file">package.json</div>
+                <div class="t-desc">MCP spec version 0.9.1 — current is 1.0.</div>
+              </div>
+              <div class="t-summary">
+                Scanned 847 lines in 4.2s<br>
+                <span class="t-summary-warn">2 findings require action.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       TRUST BAR
+       ============================================================ -->
+  <section class="trust-bar">
+    <div class="container">
+      <div class="trust-items">
+        <span class="trust-item">14 detection rules</span>
+        <div class="trust-sep"></div>
+        <span class="trust-item">&lt;&nbsp;30 seconds</span>
+        <div class="trust-sep"></div>
+        <span class="trust-item">SARIF 2.1.0 output</span>
+        <div class="trust-sep"></div>
+        <span class="trust-item">MIT licensed</span>
+        <div class="trust-sep"></div>
+        <span class="trust-item">no account required</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       FEATURE BLOCKS
+       ============================================================ -->
+  <section class="features">
+    <div class="container">
+
+      <!-- Block 1: MCP-Native Rules -->
+      <div class="feature-block">
+        <div>
+          <span class="feature-tag">Rules</span>
+          <h2 class="feature-title">Rules written for MCP, not retooled from generic scanners</h2>
+          <p class="feature-body">mcp-scan ships with a rule library built against the MCP specification — tool poisoning, prompt injection via tool descriptions, transport security, capability escalation. Generic SAST tools miss these. We don't.</p>
+          <p class="feature-note">No generic scanner has MCP-specific rules. The attack surfaces in this protocol don't exist in traditional web security tooling.</p>
+        </div>
+        <div>
+          <div class="compare-card">
+            <div class="compare-header">
+              <div class="compare-col-head">Generic SAST</div>
+              <div class="compare-col-head active">mcp-scan</div>
+            </div>
+            <div class="compare-body">
+              <div class="compare-col">
+                <div>Scanning...</div>
+                <div>&nbsp;</div>
+                <div class="no-find">0 findings</div>
+                <div>&nbsp;</div>
+                <div class="no-find">No MCP rules loaded</div>
+              </div>
+              <div class="compare-col active">
+                <div>Scanning... (14 rules)</div>
+                <div>&nbsp;</div>
+                <div class="finding-crit">TOOL-POISONING-001</div>
+                <div>&nbsp;&nbsp;[CRITICAL]</div>
+                <div class="finding-high">TRANSPORT-AUTH-002</div>
+                <div>&nbsp;&nbsp;[HIGH]</div>
+                <div style="color:var(--signal-amber);margin-top:6px">2 findings require action.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Block 2: Zero Friction -->
+      <div class="feature-block reverse">
+        <div>
+          <span class="feature-tag">CLI</span>
+          <h2 class="feature-title">One command. No account required.</h2>
+          <p class="feature-body"><code style="font-family:var(--font-mono);color:var(--cyan)">npx @syntrophy/mcp-scan scan &lt;target&gt;</code> — that's it. Run locally, in your CI pipeline, or in a pre-commit hook. Results in seconds. JSON and SARIF output for downstream tooling.</p>
+
+          <div class="code-block" style="margin-top:20px">
+            <div class="code-block-header">
+              <span>.github/workflows/security.yml</span>
+            </div>
+            <pre><span class="c-comment"># Add to any CI pipeline</span>
+<span class="c-key">- name</span><span class="c-val">:</span> <span class="c-str">mcp-scan security check</span>
+  <span class="c-key">run</span><span class="c-val">:</span> <span class="c-str">npx @syntrophy/mcp-scan scan ./src/mcp-server</span></pre>
+          </div>
+        </div>
+        <div>
+          <div class="gif-placeholder">
+            <img src="mcp-scan-demo.gif" alt="mcp-scan terminal demo — real scan output" loading="lazy">
+            <div class="gif-caption">Real scan output. No mock data.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Block 3: Actionable Output -->
+      <div class="feature-block">
+        <div>
+          <span class="feature-tag">Findings</span>
+          <h2 class="feature-title">Every finding tells you exactly what to fix</h2>
+          <p class="feature-body">No vague "potential vulnerability detected" noise. mcp-scan returns the vulnerable code path, severity classification, rule ID, and a remediation path. Fix it. Move on.</p>
+        </div>
+        <div>
+          <div class="finding-block">
+            <div class="f-title">FINDING [CRITICAL] TOOL-POISONING-001</div>
+            <span class="f-line"><span class="f-label">File:</span>    <span class="f-path">src/tools/calculator.ts:47</span></span>
+            <span class="f-line"><span class="f-label">Rule:</span>    <span class="f-ruleid">Tool description injection vector</span></span>
+            <span class="f-line" style="margin-top:6px"><span class="f-label">Detail:</span>  <span class="f-detail">Tool description accepts user-controlled input</span></span>
+            <span class="f-line"><span class="f-label"></span>         <span class="f-detail">without sanitization. An attacker can inject</span></span>
+            <span class="f-line"><span class="f-label"></span>         <span class="f-detail">instructions into the model context via crafted</span></span>
+            <span class="f-line"><span class="f-label"></span>         <span class="f-detail">tool names or descriptions.</span></span>
+            <span class="f-line" style="margin-top:6px"><span class="f-label">Fix:</span>     <span class="f-fix">Sanitize tool descriptions at registration time.</span></span>
+            <span class="f-line"><span class="f-label">See:</span>     <span class="f-ruleid">docs/rules/TOOL-POISONING-001.md</span></span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       SOCIAL PROOF (BETA PLACEHOLDER)
+       ============================================================ -->
+  <section class="social-proof">
+    <div class="container">
+      <p class="section-tag">Used by engineers building with MCP</p>
+      <h2 class="section-title">Built for the teams building the agent economy</h2>
+      <p class="section-sub">In beta. Quotes from engineering teams will appear here as we collect them. We don't manufacture testimonials.</p>
+
+      <div class="quote-cards">
+        <div class="quote-card">
+          <p class="quote-text quote-placeholder">[ Beta quote — Composio, E2B, Cursor, Continue.dev, or Zed ]</p>
+          <p class="quote-author">[ Name, Title, Company ]</p>
+        </div>
+        <div class="quote-card">
+          <p class="quote-text quote-placeholder">[ Beta quote pending ]</p>
+          <p class="quote-author">[ Name, Title, Company ]</p>
+        </div>
+        <div class="quote-card">
+          <p class="quote-text quote-placeholder">[ Beta quote pending ]</p>
+          <p class="quote-author">[ Name, Title, Company ]</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       PRICING / BETA SIGNUP
+       ============================================================ -->
+  <section class="pricing" id="beta">
+    <div class="container">
+      <p class="section-tag">Pricing</p>
+      <h2 class="section-title">Start free. Stay free.</h2>
+
+      <div class="pricing-beta">
+        <h3>mcp-scan is in beta</h3>
+        <p>Full CLI access — free while we're in development. Join the beta list to get notified about Pro features, rule updates, and the CI integration.</p>
+        <form class="email-form" onsubmit="handleBetaSignup(event)">
+          <input class="email-input" type="email" placeholder="you@company.com" required>
+          <button class="email-submit" type="submit">JOIN BETA LIST &rarr;</button>
+        </form>
+        <p class="pricing-note">No spam. Unsubscribe any time. We announce rule updates and version releases only.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       FAQ
+       ============================================================ -->
+  <section class="faq" id="faq">
+    <div class="container">
+      <p class="section-tag">FAQ</p>
+      <h2 class="section-title" style="text-align:left;margin-bottom:0">Common questions</h2>
+      <div class="faq-grid">
+        <div class="faq-item">
+          <p class="faq-q">Does mcp-scan require an account?</p>
+          <p class="faq-a">No. <code>npx @syntrophy/mcp-scan scan &lt;target&gt;</code> runs locally with no signup, no API key, no telemetry by default.</p>
+        </div>
+        <div class="faq-item">
+          <p class="faq-q">What MCP spec versions does it support?</p>
+          <p class="faq-a">mcp-scan tests against the current MCP specification. The rule library is updated as the spec evolves — check <code>--version</code> for the current rule count.</p>
+        </div>
+        <div class="faq-item">
+          <p class="faq-q">Can I run it in CI?</p>
+          <p class="faq-a">Yes. JSON output and SARIF 2.1.0 output work with GitHub Advanced Security, GitLab, and any SIEM with SARIF ingestion. <code>--format sarif --output report.sarif</code></p>
+        </div>
+        <div class="faq-item">
+          <p class="faq-q">Is the rule library open source?</p>
+          <p class="faq-a">The CLI and community rule library are MIT licensed. Advanced rules (enterprise detection patterns, custom rule authoring) are planned for Pro.</p>
+        </div>
+        <div class="faq-item">
+          <p class="faq-q">What languages and frameworks does it support?</p>
+          <p class="faq-a">mcp-scan analyzes MCP server implementations in TypeScript and JavaScript. Python support is on the roadmap. File a GitHub issue if your runtime is blocking adoption.</p>
+        </div>
+        <div class="faq-item">
+          <p class="faq-q">How is this different from Snyk or Semgrep?</p>
+          <p class="faq-a">Snyk and Semgrep have no MCP-specific rules. They don't know the MCP spec. They won't catch tool poisoning, prompt injection via tool descriptions, or capability escalation. mcp-scan was built for exactly these attack surfaces.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       FOOTER
+       ============================================================ -->
+  <footer>
+    <div class="container">
+      <div class="footer-main">
+        <div>
+          <div class="footer-brand">mcp-scan</div>
+          <div class="footer-byline">built by <a href="https://syntrophyfoundry.com" style="color:var(--steel)">Syntrophy Foundry</a> — security infrastructure for the agent economy</div>
+        </div>
+        <div class="footer-links">
+          <a href="https://github.com/syntrophy/mcp-scan" target="_blank" rel="noopener">GitHub</a>
+          <a href="https://github.com/syntrophy/mcp-scan#readme" target="_blank" rel="noopener">Documentation</a>
+          <a href="https://github.com/syntrophy/mcp-scan/security/policy" target="_blank" rel="noopener">Security Policy</a>
+          <a href="https://www.npmjs.com/package/@syntrophy/mcp-scan" target="_blank" rel="noopener">npm</a>
+        </div>
+        <div class="footer-social">
+          <a href="https://x.com/SyntrophyFoundry" target="_blank" rel="noopener" style="color:var(--steel)">@SyntrophyFoundry</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span class="footer-legal">MIT License (open source core)</span>
+        <span class="footer-legal">
+          <a href="#">Privacy Policy</a> &nbsp;&middot;&nbsp;
+          <a href="#">Terms of Service</a>
+        </span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ============================================================
+       SCRIPTS
+       ============================================================ -->
+  <script>
+    // Copy command to clipboard
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).catch(() => {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      });
+    }
+
+    function copyCmd(block, text) {
+      const btn = block.querySelector('.copy-btn');
+      copyToClipboard(text);
+      btn.textContent = 'COPIED';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'COPY';
+        btn.classList.remove('copied');
+      }, 2000);
+    }
+
+    // Beta signup (replace with real list backend)
+    function handleBetaSignup(e) {
+      e.preventDefault();
+      const email = e.target.querySelector('input[type="email"]').value;
+      // TODO: Connect to mailing list backend (Loops, Mailchimp, etc.) — CIO to provide endpoint
+      console.log('Beta signup:', email);
+      const form = e.target;
+      form.innerHTML = '<p style="color:var(--signal-green);font-family:var(--font-mono);font-size:13px;">You\'re on the list. We\'ll be in touch.</p>';
+    }
+  </script>
+
+</body>
+</html>
