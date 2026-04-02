@@ -678,20 +678,20 @@
        RESPONSIVE
        ============================================================ */
     @media (max-width: 900px) {
-      .hero-grid       { grid-template-columns: 1fr; }
+      .hero-grid      { grid-template-columns: 1fr; }
       .hero h1        { font-size: 32px; }
-      .feature-block  { grid-template-columns: 1fs; gap: 32px; }
+      .feature-block  { grid-template-columns: 1fr; gap: 32px; }
       .feature-block.reverse { direction: ltr; }
-      .quote-cards    { grid-template-columns: 1fr 1|r; }
+      .quote-cards    { grid-template-columns: 1fr; }
       .faq-grid       { grid-template-columns: 1fr; gap: 32px; }
-      .footer-main     { flex-direction: column; gap: 24px; }
+      .footer-main    { flex-direction: column; gap: 24px; }
       .nav-links li.hide-mobile { display: none; }
-      .email-form      { flex-direction: column; }
+      .email-form     { flex-direction: column; }
     }
     @media (max-width: 600px) {
       .container      { padding: 0 20px; }
       .hero           { padding: 64px 0 48px; }
-      .trust-items     { flex-direction: column; gap: 12px; }
+      .trust-items    { flex-direction: column; gap: 12px; }
       .trust-sep      { display: none; }
       .terminal-body  { font-size: 11px; }
     }
@@ -701,7 +701,7 @@
 
   <!-- ============================================================
        NAV
-       ========================================================== -->
+       ============================================================ -->
   <nav>
     <div class="container">
       <div class="nav-inner">
@@ -741,7 +741,7 @@
 
           <p class="hero-secondary">
             No account required. MIT licensed.
-            <a href="https://github.com/syntrophy/mcp-scan" target="_blank" rel="noopener">Read the docs &rar{;</a>
+            <a href="https://github.com/syntrophy/mcp-scan" target="_blank" rel="noopener">Read the docs &rarr;</a>
           </p>
         </div>
 
@@ -1037,6 +1037,7 @@
     }
 
     // Beta signup — Loops newsletter form
+    // To go live: replace LOOPS_FORM_ID with the form ID from app.loops.so
     async function handleBetaSignup(e) {
       e.preventDefault();
       const form  = e.target;
@@ -1047,7 +1048,7 @@
       btn.textContent = 'JOINING\u2026';
 
       try {
-        const res = await fetch('https://app.loops.so/api/newsletter-form/cmni0e3he00180i0ihqkhn2gu', {
+        const res = await fetch('https://app.loops.so/api/newsletter-form/LOOPS_FORM_ID', {
           method:  'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body:    'email=' + encodeURIComponent(email)
